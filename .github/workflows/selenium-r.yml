@@ -1,0 +1,73 @@
+name: Selenium R Automation
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 8 * * 1-5'  # Executa dias úteis às 8h UTC
+
+jobs:
+  selenium-r-automation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup R
+      uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: '4.3'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          firefox \
+          default-jre \
+          libcurl4-openssl-dev \
+          libssl-dev \
+          libxml2-dev \
+          libudunits2-dev \
+          libgdal-dev
+        
+    - name: Install R dependencies
+      run: |
+        Rscript -e 'install.packages(c("selenium", "rvest", "dplyr", "readr"), repos = "https://cloud.r-project.org")'
+        
+    - name: Download Selenium Server
+      run: |
+        mkdir -p selenium-server
+        wget -O selenium-server/selenium-server.jar \
+          "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.36.0/selenium-server-4.36.0.jar"
+        
+    - name: Start Selenium Server
+      run: |
+        java -jar selenium-server/selenium-server.jar standalone --port 4444 &
+        echo $! > selenium-server.pid
+        sleep 10
+        
+    - name: Run Selenium R script
+      run: |
+        Rscript selenium_github_actions.R
+      env:
+        RETRY_COUNT: 3
+        WAIT_TIME: 10
+        
+    - name: Upload results
+      uses: actions/upload-artifact@v4
+      with:
+        name: extracted-data
+        path: |
+          *.csv
+        retention-days: 30
+        
+    - name: Stop Selenium Server
+      if: always()
+      run: |
+        if [ -f selenium-server.pid ]; then
+          kill $(cat selenium-server.pid) || true
+          rm -f selenium-server.pid
+        fi
