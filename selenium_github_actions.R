@@ -55,7 +55,7 @@ run_selenium_automation <- function() {
     session$
       find_element("xpath", "//button[contains(text(), 'Login')]")$
       click()
-    Sys.sleep(5)
+    Sys.sleep(10)
     
     ########################################################################
     # SharePoint
