@@ -26,45 +26,35 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           firefox \
-          firefox-geckodriver \
           default-jre \
           libcurl4-openssl-dev \
           libssl-dev \
           libxml2-dev \
           libudunits2-dev \
-          libgdal-dev \
-          wget
-        
-    - name: Download and setup Selenium Server
-      run: |
-        mkdir -p selenium-server
-        wget -O selenium-server/selenium-server.jar \
-          "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.20.0/selenium-server-4.20.0.jar"
-        echo "Selenium Server downloaded successfully"
+          libgdal-dev
         
     - name: Install R dependencies
       run: |
         Rscript -e 'install.packages(c("selenium", "rvest", "dplyr", "readr"), repos = "https://cloud.r-project.org")'
         
+    - name: Download Selenium Server
+      run: |
+        mkdir -p selenium-server
+        wget -O selenium-server/selenium-server.jar \
+          "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.36.0/selenium-server-4.36.0.jar"
+        
     - name: Start Selenium Server
       run: |
-        echo "Starting Selenium Server..."
-        java -jar selenium-server/selenium-server.jar standalone --port 4444 --selenium-manager true > selenium-server.log 2>&1 &
+        java -jar selenium-server/selenium-server.jar standalone --port 4444 &
         echo $! > selenium-server.pid
-        sleep 20
-        echo "Selenium Server started"
-        
-    - name: Check if Selenium Server is running
-      run: |
-        curl -f http://localhost:4444/status || echo "Selenium Server not responding"
-        ps aux | grep java || echo "Java process not found"
+        sleep 10
         
     - name: Run Selenium R script
       run: |
         Rscript selenium_github_actions.R
       env:
         RETRY_COUNT: 3
-        WAIT_TIME: 15
+        WAIT_TIME: 10
         
     - name: Upload results
       uses: actions/upload-artifact@v4
@@ -74,12 +64,6 @@ jobs:
           *.csv
         retention-days: 30
         
-    - name: Show Selenium Server logs
-      if: always()
-      run: |
-        echo "=== Selenium Server Logs ==="
-        tail -100 selenium-server.log || echo "No log file found"
-        
     - name: Stop Selenium Server
       if: always()
       run: |
@@ -87,4 +71,3 @@ jobs:
           kill $(cat selenium-server.pid) || true
           rm -f selenium-server.pid
         fi
-        pkill -f "java.*selenium" || true
