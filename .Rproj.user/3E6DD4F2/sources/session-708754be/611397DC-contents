@@ -1,0 +1,18 @@
+library(selenium)
+
+session <- SeleniumSession$new()
+
+session$navigate("https://transformation-day-mock-site.netlify.app/")
+session$
+  find_element(using = "css selector", value = ".row")$
+  find_element(using = "css selector", value = "ul")$
+  find_element(using = "css selector", value = "a")$
+  click()
+
+session$
+  find_element(using = "css selector", value = ".row")$
+  find_elements(using = "css selector", value = "div")[[2]]$
+  find_element(using = "css selector", value = "p")$
+    get_text()
+
+
