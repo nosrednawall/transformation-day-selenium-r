@@ -1,13 +1,12 @@
-# install.packages("selenium-r")
+# Carregar pacotes
 library(selenium)
 library(rvest)
 library(dplyr)
 library(readr)
-library(purrr)
 
 # Configurações para ambiente CI
 max_retries <- as.numeric(Sys.getenv("RETRY_COUNT", 3))
-wait_time <- as.numeric(Sys.getenv("WAIT_TIME", 10))
+wait_time <- as.numeric(Sys.getenv("WAIT_TIME", 15))
 
 # Configurar selenium para modo não interativo
 options(selenium.interactive = FALSE)
@@ -27,7 +26,7 @@ run_selenium_automation <- function() {
       port = 4444L
     )
     
-    Sys.sleep(5)
+    Sys.sleep(10)
     
     # Abrir o site
     message("Navegando para o site...")
@@ -86,19 +85,19 @@ run_selenium_automation <- function() {
         break
       }
       
-      # Extrai as células (td)
-      dados <- map(linhas, function(tr) {
+      # Extrai as células (td) - versão sem purrr
+      dados <- lapply(linhas, function(tr) {
         tr %>% html_elements("td") %>% html_text(trim = TRUE)
       })
       
       # Filtra linhas vazias
-      dados <- dados[map_int(dados, length) > 0]
+      dados <- dados[sapply(dados, length) > 0]
       
       if (length(dados) > 0) {
-        # Converte para data.frame
-        sharepoint_pag <- map_dfr(dados, function(x) {
+        # Converte para data.frame - versão sem purrr
+        sharepoint_pag <- do.call(rbind, lapply(dados, function(x) {
           as.data.frame(t(as.matrix(x)), stringsAsFactors = FALSE)
-        })
+        }))
         
         sharepoint[[i]] <- sharepoint_pag
         
@@ -165,16 +164,16 @@ run_selenium_automation <- function() {
         break
       }
       
-      dados <- map(linhas, function(tr) {
+      dados <- lapply(linhas, function(tr) {
         tr %>% html_elements("td") %>% html_text(trim = TRUE)
       })
       
-      dados <- dados[map_int(dados, length) > 0]
+      dados <- dados[sapply(dados, length) > 0]
       
       if (length(dados) > 0) {
-        sap_pag <- map_dfr(dados, function(x) {
+        sap_pag <- do.call(rbind, lapply(dados, function(x) {
           as.data.frame(t(as.matrix(x)), stringsAsFactors = FALSE)
-        })
+        }))
         
         sap[[i]] <- sap_pag
         
@@ -242,16 +241,16 @@ run_selenium_automation <- function() {
         break
       }
       
-      dados <- map(linhas, function(tr) {
+      dados <- lapply(linhas, function(tr) {
         tr %>% html_elements("td") %>% html_text(trim = TRUE)
       })
       
-      dados <- dados[map_int(dados, length) > 0]
+      dados <- dados[sapply(dados, length) > 0]
       
       if (length(dados) > 0) {
-        neogrid_pag <- map_dfr(dados, function(x) {
+        neogrid_pag <- do.call(rbind, lapply(dados, function(x) {
           as.data.frame(t(as.matrix(x)), stringsAsFactors = FALSE)
-        })
+        }))
         
         neogrid[[i]] <- neogrid_pag
         
@@ -293,26 +292,32 @@ run_selenium_automation <- function() {
     # Fecha o navegador
     session$close()
     message("Automação concluída com sucesso!")
+    return(TRUE)
     
   }, error = function(e) {
     message("Erro durante a execução: ", e$message)
-    stop("Falha na automação")
+    return(FALSE)
   })
 }
 
 # Executar com retry
+message(paste("Iniciando automação Selenium -", max_retries, "tentativas máximas"))
+
 for (attempt in 1:max_retries) {
-  message(paste("Tentativa", attempt, "de", max_retries))
-  tryCatch({
-    run_selenium_automation()
-    message("Sucesso na tentativa ", attempt)
+  message(paste("\n=== Tentativa", attempt, "de", max_retries, "==="))
+  success <- run_selenium_automation()
+  
+  if (success) {
+    message(paste("✅ Sucesso na tentativa", attempt))
     break
-  }, error = function(e) {
-    message("Tentativa ", attempt, " falhou: ", e$message)
+  } else {
+    message(paste("❌ Tentativa", attempt, "falhou"))
     if (attempt == max_retries) {
-      stop("Todas as tentativas falharam: ", e$message)
+      stop("❌ Todas as tentativas falharam")
     }
-    message("Aguardando ", wait_time, " segundos para retry...")
+    message(paste("⏳ Aguardando", wait_time, "segundos para próxima tentativa..."))
     Sys.sleep(wait_time)
-  })
+  }
 }
+
+message("🎊 Script finalizado!")
