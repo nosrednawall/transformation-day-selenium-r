@@ -1,5 +1,4 @@
-install.packages("pak")
-pak::pak("ashbythorpe/selenium-r")
+# install.packages("selenium-r")
 
 library(selenium)
 library(rvest)
@@ -11,8 +10,7 @@ library(dplyr)
 # no prompt de comando
 
 #Abrir o chrome
-session <- SeleniumSession$new(browser = "chrome")
-
+# session <- SeleniumSession$new(browser = "chrome")
 server <- selenium_server(temp = FALSE)
 
 wait_for_server(server)
@@ -65,7 +63,7 @@ Sys.sleep(5)
 
 sharepoint <- list()
 
-num_paginas <- 37
+num_paginas <- 3
 
 for (i in 1:num_paginas) {
   # Captura o HTML da página atual
@@ -133,7 +131,7 @@ Sys.sleep(3)
 
 sap <- list()
 
-num_paginas <- 182
+num_paginas <- 3
 
 for (i in 1:num_paginas) {
   
@@ -205,7 +203,7 @@ Sys.sleep(3)
 
 neogrid <- list()
 
-num_paginas <- 91
+num_paginas <- 3
 
 for (i in 1:num_paginas) {
   
