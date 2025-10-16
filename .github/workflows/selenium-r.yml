@@ -51,7 +51,7 @@ jobs:
         
     - name: Run Selenium R script
       run: |
-        Rscript selenium.R
+        Rscript selenium_github_actions.R
       env:
         RETRY_COUNT: 3
         WAIT_TIME: 10

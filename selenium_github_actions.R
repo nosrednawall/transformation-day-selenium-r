@@ -16,17 +16,42 @@ run_selenium_automation <- function() {
     message("Configurando ambiente Selenium...")
     
     # Verificar se o servidor está rodando
-    system("curl -f http://localhost:4444/status", intern = TRUE)
+    server_status <- try({
+      system("curl -s -f http://localhost:4444/status", intern = TRUE, ignore.stderr = TRUE)
+    }, silent = TRUE)
     
-    # Usar servidor já existente em localhost:4444
+    if (inherits(server_status, "try-error")) {
+      message("Servidor Selenium não está respondendo, tentando iniciar...")
+      # Tentar iniciar o servidor se não estiver rodando
+      system("java -jar selenium-server/selenium-server.jar standalone --port 4444 --detach true &", wait = FALSE)
+      Sys.sleep(10)
+    }
+    
+    # Configurar opções do Firefox para rodar headless e com resolução específica
+    firefox_options <- list(
+      args = c(
+        "--headless",
+        "--width=1920",
+        "--height=1080",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-dev-shm-usage"
+      )
+    )
+    
     message("Conectando ao Selenium Server...")
     session <- SeleniumSession$new(
       browser = "firefox",
       host = "localhost",
-      port = 4444L
+      port = 4444L,
+      extra_capabilities = list(
+        "moz:firefoxOptions" = firefox_options
+      )
     )
     
-    Sys.sleep(10)
+    # Definir tamanho da janela (mesmo em headless)
+    session$set_window_size(1920, 1080)
+    Sys.sleep(5)
     
     # Abrir o site
     message("Navegando para o site...")
